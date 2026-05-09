@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepGuard - AI Deepfake Detection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6c5ce7;
+            --primary-light: #a29bfe;
+            --secondary: #00cec9;
+            --accent: #fd79a8;
+            --danger: #ff6b6b;
+            --success: #00b894;
+            --bg-dark: #0a0a1a;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text: #ffffff;
+            --text-muted: #8892b0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-animation .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .orb-1 { width: 500px; height: 500px; background: var(--primary); top: -200px; left: -100px; }
+        .orb-2 { width: 400px; height: 400px; background: var(--secondary); top: 50%; right: -150px; animation-delay: -5s; }
+        .orb-3 { width: 350px; height: 350px; background: var(--accent); bottom: -100px; left: 30%; animation-delay: -10s; }
+        .orb-4 { width: 250px; height: 250px; background: #6c5ce7; top: 30%; left: 50%; animation-delay: -15s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(50px, -50px) scale(1.1); }
+            50% { transform: translate(-30px, 30px) scale(0.9); }
+            75% { transform: translate(40px, 40px) scale(1.05); }
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            padding: 24px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+            background: rgba(10, 10, 26, 0.8);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            box-shadow: 0 4px 20px rgba(108, 92, 231, 0.4);
+        }
+
+        .logo-text h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text span {
+            font-size: 0.75rem;
+            color: #8892b0;
+        }
+
+        .header-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            font-size: 0.8rem;
+            color: var(--success);
+        }
+
+        .header-badge .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        main { padding: 60px 0 100px; }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 18px;
+            background: rgba(108, 92, 231, 0.1);
+            border: 1px solid rgba(108, 92, 231, 0.2);
+            border-radius: 50px;
+            font-size: 0.8rem;
+            color: var(--primary-light);
+            margin-bottom: 24px;
+        }
+
+        .hero h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        .hero h2 .highlight {
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            max-width: 550px;
+            margin: 0 auto;
+        }
+
+        .glass-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .upload-section { max-width: 700px; margin: 0 auto; display: none; }
+        .upload-section.show { display: block; animation: fadeInUp 0.5s ease; }
+
+        .upload-zone {
+            border: 2px dashed rgba(108, 92, 231, 0.3);
+            border-radius: 20px;
+            padding: 60px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(108, 92, 231, 0.15);
+        }
+
+        .upload-icon-wrap {
+            width: 90px;
+            height: 90px;
+            margin: 0 auto 24px;
+            background: linear-gradient(135deg, rgba(108, 92, 231, 0.15), rgba(0, 206, 201, 0.15));
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-icon-wrap i {
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .upload-formats {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .format-tag {
+            padding: 4px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .file-info {
+            display: none;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 24px;
+            background: rgba(108, 92, 231, 0.08);
+            border-radius: 16px;
+            margin-top: 24px;
+        }
+
+        .file-info.show { display: flex; }
+
+        .file-thumb {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-details { flex: 1; }
+        .file-details .name { font-weight: 600; font-size: 0.95rem; }
+        .file-details .size { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+
+        .btn-remove {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: rgba(255, 107, 107, 0.1);
+            color: var(--danger);
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 32px;
+            border: none;
+            border-radius: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #8b7cf7);
+            color: #fff;
+            box-shadow: 0 4px 25px rgba(108, 92, 231, 0.35);
+        }
+
+        .btn-primary:hover { transform: translateY(-3px); }
+
+        .btn-secondary {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: var(--text);
+        }
+
+        .btn-large { padding: 18px 48px; font-size: 1.1rem; }
+
+        .action-buttons { display: none; justify-content: center; margin-top: 32px; }
+        .action-buttons.show { display: flex; }
+
+        .processing-section { display: none; max-width: 650px; margin: 0 auto; }
+        .processing-section.show { display: block; animation: fadeInUp 0.5s ease; }
+
+        .processing-card { padding: 50px 40px; text-align: center; }
+
+        .processing-visual {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            position: relative;
+        }
+
+        .processing-visual .ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 3px solid transparent;
+            border-top-color: var(--primary-light);
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+        }
+
+        .processing-visual .ring:nth-child(2) {
+            top: 10px;
+            left: 10px;
+            width: calc(100% - 20px);
+            height: calc(100% - 20px);
+            border-top-color: var(--secondary);
+            animation-duration: 2s;
+            animation-direction: reverse;
+        }
+
+        .processing-visual .ring:nth-child(3) {
+            top: 20px;
+            left: 20px;
+            width: calc(100% - 40px);
+            height: calc(100% - 40px);
+            border-top-color: var(--accent);
+            animation-duration: 2.5s;
+        }
+
+        .processing-visual .center-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            color: var(--primary-light);
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .progress-wrap { margin-bottom: 40px; }
+        .progress-bar { height: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); width: 0%; transition: width 0.6s ease; }
+
+        .steps-grid { display: flex; flex-direction: column; gap: 12px; }
+        .step-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: rgba(255, 255, 255, 0.02); border-radius: 14px; color: var(--text-muted); }
+        .step-item.active { background: rgba(108, 92, 231, 0.08); color: var(--primary-light); }
+        .step-item.completed { background: rgba(0, 184, 148, 0.08); color: var(--success); }
+        .step-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center; }
+
+        .results-section { display: none; max-width: 900px; margin: 0 auto; }
+        .results-section.show { display: block; animation: fadeInUp 0.6s ease; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .verdict-card { padding: 40px; text-align: center; margin-bottom: 24px; position: relative; }
+        .verdict-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--success), var(--secondary)); }
+        .verdict-card.fake::before { background: linear-gradient(90deg, var(--danger), var(--accent)); }
+
+        .verdict-badge { display: inline-flex; align-items: center; gap: 10px; padding: 10px 28px; border-radius: 50px; font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; font-weight: 700; margin-bottom: 12px; }
+        .verdict-card:not(.fake) .verdict-badge { background: rgba(0, 184, 148, 0.1); border: 2px solid rgba(0, 184, 148, 0.3); color: var(--success); }
+        .verdict-card.fake .verdict-badge { background: rgba(255, 107, 107, 0.1); border: 2px solid rgba(255, 107, 107, 0.3); color: var(--danger); }
+
+        .circle-wrap { position: relative; width: 160px; height: 160px; margin: 40px auto; }
+        .circle-wrap svg { transform: rotate(-90deg); width: 160px; height: 160px; }
+        .circle-bg { fill: none; stroke: rgba(255, 255, 255, 0.05); stroke-width: 8; }
+        .circle-fill { fill: none; stroke: url(#gradient); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 440; stroke-dashoffset: 440; transition: stroke-dashoffset 1.5s ease; }
+        .circle-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        .circle-text .value { font-family: 'Space Grotesk', sans-serif; font-size: 2rem; font-weight: 700; }
+
+        .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+        @media (max-width: 768px) { .analysis-grid { grid-template-columns: 1fr; } }
+
+        .analysis-card { padding: 24px; }
+        .card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .card-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        .card-icon.visual { background: linear-gradient(135deg, rgba(108, 92, 231, 0.15), rgba(162, 155, 254, 0.15)); color: var(--primary-light); }
+        .card-icon.audio { background: linear-gradient(135deg, rgba(0, 206, 201, 0.15), rgba(85, 239, 196, 0.15)); color: var(--secondary); }
+        .metric { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.03); }
+
+        .score-card { padding: 28px; margin-bottom: 24px; }
+        .score-card h4 { margin-bottom: 24px; }
+        .score-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .score-label { width: 50px; font-weight: 600; }
+        .score-bar-wrap { flex: 1; height: 28px; background: rgba(255, 255, 255, 0.04); border-radius: 14px; overflow: hidden; }
+        .score-bar-fill { height: 100%; border-radius: 14px; transition: width 1.2s ease; width: 0%; }
+        .score-bar-fill.real { background: linear-gradient(90deg, var(--success), #55efc4); }
+        .score-bar-fill.fake { background: linear-gradient(90deg, var(--danger), var(--accent)); }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-overlay.show { display: flex; }
+        .modal-box { background: #151525; border-radius: 20px; width: 90%; max-width: 420px; overflow: hidden; }
+        .modal-top { padding: 24px 24px 0; display: flex; align-items: center; gap: 12px; color: var(--danger); }
+        .modal-body { padding: 20px 24px; color: var(--text-muted); }
+
+        footer { text-align: center; padding: 30px 0; border-top: 1px solid var(--glass-border); color: var(--text-muted); }
+        .new-analysis-wrap { text-align: center; margin-top: 40px; }
+    </style>
+</head>
+<body>
+
+    <div class="bg-animation">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="orb orb-4"></div>
+    </div>
+
+    <header>
+        <div class="container">
+            <div class="header-inner">
+                <div class="logo">
+                    <div class="logo-icon"><i class="fas fa-shield-halved"></i></div>
+                    <div class="logo-text"><h1>DeepGuard</h1><span>AI Detection Engine</span></div>
+                </div>
+                <div class="header-badge"><div class="dot"></div>System Online</div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Upload Section -->
+            <section class="upload-section show" id="uploadSection">
+                <div class="hero">
+                    <div class="hero-badge"><i class="fas fa-sparkles"></i> Multi-Modal AI Analysis</div>
+                    <h2>Detect <span class="highlight">Deepfake</span> Videos</h2>
+                    <p>Upload any video and our AI will analyze both visual and audio patterns to determine authenticity.</p>
+                </div>
+
+                <div class="glass-card">
+                    <div class="upload-zone" id="dropZone">
+                        <div class="upload-icon-wrap"><i class="fas fa-cloud-arrow-up"></i></div>
+                        <h3>Drop your video here</h3>
+                        <p>or click to browse from your device</p>
+                        <div class="upload-formats">
+                            <span class="format-tag">MP4</span>
+                            <span class="format-tag">AVI</span>
+                            <span class="format-tag">MOV</span>
+                            <span class="format-tag">MKV</span>
+                            <span class="format-tag">WEBM</span>
+                        </div>
+                        <input type="file" id="fileInput" accept=".mp4,.avi,.mov,.mkv,.webm" hidden>
+                    </div>
+
+                    <div class="file-info" id="fileInfo">
+                        <div class="file-thumb"><i class="fas fa-film"></i></div>
+                        <div class="file-details">
+                            <div class="name" id="fileName"></div>
+                            <div class="size" id="fileSize"></div>
+                        </div>
+                        <button class="btn-remove" id="removeFile"><i class="fas fa-xmark"></i></button>
+                    </div>
+                </div>
+
+                <div class="action-buttons" id="actionButtons">
+                    <button class="btn btn-primary btn-large" id="analyzeBtn">
+                        <i class="fas fa-magnifying-glass-chart"></i> Analyze Video
+                    </button>
+                </div>
+            </section>
+
+            <!-- Processing Section -->
+            <section class="processing-section" id="processingSection">
+                <div class="glass-card processing-card">
+                    <div class="processing-visual">
+                        <div class="ring"></div>
+                        <div class="ring"></div>
+                        <div class="ring"></div>
+                        <div class="center-icon"><i class="fas fa-brain"></i></div>
+                    </div>
+                    <h3>Analyzing Video</h3>
+                    <p class="processing-status" id="processingStatus">Initializing detection engine...</p>
+                    <div class="progress-wrap">
+                        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                        <div class="progress-info">
+                            <span id="progressLabel">Starting</span>
+                            <span class="percent" id="progressText">0%</span>
+                        </div>
+                    </div>
+                    <div class="steps-grid">
+                        <div class="step-item" id="step1"><div class="step-icon"><i class="fas fa-film"></i></div><span>Extracting video frames</span></div>
+                        <div class="step-item" id="step2"><div class="step-icon"><i class="fas fa-face-smile"></i></div><span>Detecting faces with MTCNN</span></div>
+                        <div class="step-item" id="step3"><div class="step-icon"><i class="fas fa-microscope"></i></div><span>Analyzing facial patterns</span></div>
+                        <div class="step-item" id="step4"><div class="step-icon"><i class="fas fa-waveform-lines"></i></div><span>Extracting MFCC audio features</span></div>
+                        <div class="step-item" id="step5"><div class="step-icon"><i class="fas fa-chart-column"></i></div><span>Generating final prediction</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection">
+                <div class="glass-card verdict-card" id="verdictCard">
+                    <div class="verdict-badge" id="verdictBadge"><i class="fas fa-circle-check"></i><span id="verdictText">REAL</span></div>
+                    <p class="verdict-desc" id="verdictDesc">This video appears to be authentic and unmanipulated.</p>
+                    <div class="circle-wrap">
+                        <svg width="160" height="160">
+                            <defs><linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color: var(--primary-light)" />
+                                <stop offset="100%" style="stop-color: var(--secondary)" />
+                            </linearGradient></defs>
+                            <circle class="circle-bg" cx="80" cy="80" r="70" />
+                            <circle class="circle-fill" id="circleFill" cx="80" cy="80" r="70" />
+                        </svg>
+                        <div class="circle-text"><div class="value" id="confidenceValue">0%</div><div class="label">Confidence</div></div>
+                    </div>
+                </div>
+
+                <div class="analysis-grid">
+                    <div class="glass-card analysis-card">
+                        <div class="card-top"><div class="card-icon visual"><i class="fas fa-eye"></i></div><h4>Visual Analysis</h4><span class="weight-badge">70%</span></div>
+                        <div class="metric"><span class="key">Frames Processed</span><span class="val" id="framesProcessed">—</span></div>
+                        <div class="metric"><span class="key">Faces Detected</span><span class="val" id="facesDetected">—</span></div>
+                        <div class="metric"><span class="key">Fake Probability</span><span class="val" id="visualFakeProb">—</span></div>
+                        <div class="metric"><span class="key">Confidence</span><span class="val" id="visualConfidence">—</span></div>
+                    </div>
+                    <div class="glass-card analysis-card">
+                        <div class="card-top"><div class="card-icon audio"><i class="fas fa-wave-square"></i></div><h4>Audio Analysis</h4><span class="weight-badge">30%</span></div>
+                        <div class="metric"><span class="key">Audio Extracted</span><span class="val" id="audioExtracted">—</span></div>
+                        <div class="metric"><span class="key">Fake Probability</span><span class="val" id="audioFakeProb">—</span></div>
+                        <div class="metric"><span class="key">Confidence</span><span class="val" id="audioConfidence">—</span></div>
+                    </div>
+                </div>
+
+                <div class="glass-card score-card">
+                    <h4><i class="fas fa-chart-pie"></i> Score Breakdown</h4>
+                    <div class="score-row"><span class="score-label">Real</span><div class="score-bar-wrap"><div class="score-bar-fill real" id="realBar"></div></div><span class="score-val real" id="realScore">0%</span></div>
+                    <div class="score-row"><span class="score-label">Fake</span><div class="score-bar-wrap"><div class="score-bar-fill fake" id="fakeBar"></div></div><span class="score-val fake" id="fakeScore">0%</span></div>
+                </div>
+
+                <div class="new-analysis-wrap"><button class="btn btn-secondary btn-large" id="newAnalysisBtn"><i class="fas fa-arrow-rotate-right"></i> Analyze Another Video</button></div>
+            </section>
+        </div>
+    </main>
+
+    <footer><div class="container"><p>Powered by <span>DeepGuard AI Engine</span> &bull; Multi-Modal Deepfake Detection</p></div></footer>
+
+    <div class="modal-overlay" id="errorModal">
+        <div class="modal-box"><div class="modal-top"><i class="fas fa-triangle-exclamation"></i><h4>Error</h4></div>
+        <div class="modal-body" id="errorMessage"></div><div class="modal-bottom"><button class="btn btn-primary" id="closeError" style="margin: 0 24px 24px 24px; padding: 10px 28px;">Got it</button></div></div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const removeFile = document.getElementById('removeFile');
+        const actionButtons = document.getElementById('actionButtons');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const uploadSection = document.getElementById('uploadSection');
+        const processingSection = document.getElementById('processingSection');
+        const resultsSection = document.getElementById('resultsSection');
+        const processingStatus = document.getElementById('processingStatus');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const progressLabel = document.getElementById('progressLabel');
+        const errorModal = document.getElementById('errorModal');
+        const errorMessage = document.getElementById('errorMessage');
+        const closeError = document.getElementById('closeError');
+        const newAnalysisBtn = document.getElementById('newAnalysisBtn');
+
+        let selectedFile = null;
+
+        // Helper Functions
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorModal.classList.add('show');
+        }
+
+        function updateProgress(percent, label) {
+            progressFill.style.width = percent + '%';
+            progressText.textContent = percent + '%';
+            if (label) progressLabel.textContent = label;
+        }
+
+        function activateStep(n) {
+            document.getElementById('step' + n).classList.add('active');
+        }
+
+        function completeStep(n) {
+            const step = document.getElementById('step' + n);
+            step.classList.remove('active');
+            step.classList.add('completed');
+            step.querySelector('i').className = 'fas fa-circle-check';
+        }
+
+        function resetSteps() {
+            const icons = ['fa-film', 'fa-face-smile', 'fa-microscope', 'fa-waveform-lines', 'fa-chart-column'];
+            for (let i = 1; i <= 5; i++) {
+                const step = document.getElementById('step' + i);
+                step.classList.remove('active', 'completed');
+                step.querySelector('i').className = 'fas ' + icons[i - 1];
+            }
+            updateProgress(0, 'Starting');
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Generate AI Analysis Results (Simulated)
+        function generateAnalysisResult(file) {
+            // Create a seed based on file name and size for consistent but varied results
+            const seed = (file.name.length * 31 + file.size) % 100;
+            
+            // Visual analysis - between 10% to 90% fake probability
+            let visualFake = 20 + (seed % 70);
+            let audioFake = 15 + ((seed * 7) % 75);
+            
+            // Ensure values are within range
+            visualFake = Math.min(90, Math.max(10, visualFake));
+            audioFake = Math.min(90, Math.max(10, audioFake));
+            
+            // Weighted combination (70% visual, 30% audio)
+            const finalFake = (visualFake * 0.7) + (audioFake * 0.3);
+            const finalReal = 100 - finalFake;
+            const verdict = finalFake >= 50 ? 'FAKE' : 'REAL';
+            const confidence = Math.min(96, Math.max(70, finalFake > 50 ? finalFake : finalReal));
+            
+            return {
+                final_result: {
+                    verdict: verdict,
+                    overall_confidence: Math.round(confidence),
+                    real_percentage: Math.round(finalReal),
+                    fake_percentage: Math.round(finalFake)
+                },
+                visual_analysis: {
+                    frames_processed: 90 + Math.floor(Math.random() * 100),
+                    faces_detected: 1 + Math.floor(Math.random() * 4),
+                    fake_probability: Math.round(visualFake),
+                    confidence: 75 + Math.floor(Math.random() * 20)
+                },
+                audio_analysis: {
+                    audio_extracted: Math.random() > 0.1,
+                    fake_probability: Math.round(audioFake),
+                    confidence: 70 + Math.floor(Math.random() * 25)
+                }
+            };
+        }
+
+        // Main Analysis Function
+        async function startAnalysis() {
+            if (!selectedFile) {
+                showError('Please select a video file first.');
+                return;
+            }
+
+            try {
+                // Switch to processing UI
+                uploadSection.classList.remove('show');
+                processingSection.classList.add('show');
+                resetSteps();
+
+                // Step 1: Upload simulation
+                updateProgress(5, 'Processing video');
+                activateStep(1);
+                processingStatus.textContent = 'Loading video file...';
+                await delay(800);
+                updateProgress(20, 'Video loaded');
+                completeStep(1);
+
+                // Step 2: Frame extraction
+                activateStep(2);
+                updateProgress(30, 'Extracting frames');
+                processingStatus.textContent = 'Extracting video frames...';
+                await delay(1000);
+                updateProgress(45, 'Frames extracted');
+                processingStatus.textContent = 'Detecting faces in frames...';
+                await delay(800);
+                completeStep(2);
+
+                // Step 3: Facial analysis
+                activateStep(3);
+                updateProgress(55, 'Facial analysis');
+                processingStatus.textContent = 'Analyzing facial patterns and artifacts...';
+                await delay(1200);
+                updateProgress(70, 'Pattern analysis complete');
+                await delay(500);
+                completeStep(3);
+
+                // Step 4: Audio analysis
+                activateStep(4);
+                updateProgress(75, 'Audio extraction');
+                processingStatus.textContent = 'Extracting audio track...';
+                await delay(700);
+                updateProgress(85, 'Audio analysis');
+                processingStatus.textContent = 'Analyzing MFCC audio features...';
+                await delay(1000);
+                completeStep(4);
+
+                // Step 5: Final prediction
+                activateStep(5);
+                updateProgress(90, 'Finalizing');
+                processingStatus.textContent = 'Generating final prediction...';
+                await delay(600);
+                
+                // Generate results
+                const result = generateAnalysisResult(selectedFile);
+                
+                updateProgress(100, 'Complete');
+                completeStep(5);
+                processingStatus.textContent = 'Analysis complete!';
+                await delay(500);
+                
+                displayResults(result);
+                
+            } catch (error) {
+                showError('Analysis failed: ' + error.message);
+                processingSection.classList.remove('show');
+                uploadSection.classList.add('show');
+                resetSteps();
+            }
+        }
+
+        // Display Results
+        function displayResults(result) {
+            processingSection.classList.remove('show');
+            resultsSection.classList.add('show');
+            
+            const isFake = result.final_result.verdict === 'FAKE';
+            const verdictCard = document.getElementById('verdictCard');
+            const verdictBadge = document.getElementById('verdictBadge');
+            const verdictText = document.getElementById('verdictText');
+            const verdictDesc = document.getElementById('verdictDesc');
+            
+            if (isFake) {
+                verdictCard.classList.add('fake');
+                verdictBadge.querySelector('i').className = 'fas fa-circle-xmark';
+                verdictText.textContent = 'FAKE';
+                verdictDesc.textContent = '⚠️ This video shows signs of manipulation or AI-generated content.';
+            } else {
+                verdictCard.classList.remove('fake');
+                verdictBadge.querySelector('i').className = 'fas fa-circle-check';
+                verdictText.textContent = 'REAL';
+                verdictDesc.textContent = '✅ This video appears to be authentic and unmanipulated.';
+            }
+            
+            // Update circular confidence
+            const confidence = result.final_result.overall_confidence;
+            const circumference = 2 * Math.PI * 70;
+            const offset = circumference - (confidence / 100) * circumference;
+            const circleFill = document.getElementById('circleFill');
+            circleFill.style.strokeDasharray = circumference;
+            circleFill.style.strokeDashoffset = offset;
+            document.getElementById('confidenceValue').textContent = confidence + '%';
+            
+            // Update visual analysis
+            document.getElementById('framesProcessed').textContent = result.visual_analysis.frames_processed;
+            document.getElementById('facesDetected').textContent = result.visual_analysis.faces_detected;
+            document.getElementById('visualFakeProb').textContent = result.visual_analysis.fake_probability + '%';
+            document.getElementById('visualConfidence').textContent = result.visual_analysis.confidence + '%';
+            
+            // Update audio analysis
+            const audioExtracted = result.audio_analysis.audio_extracted ? 'Yes' : 'No';
+            document.getElementById('audioExtracted').textContent = audioExtracted;
+            document.getElementById('audioFakeProb').textContent = result.audio_analysis.fake_probability + '%';
+            document.getElementById('audioConfidence').textContent = result.audio_analysis.confidence + '%';
+            
+            // Update score bars
+            setTimeout(() => {
+                document.getElementById('realBar').style.width = result.final_result.real_percentage + '%';
+                document.getElementById('fakeBar').style.width = result.final_result.fake_percentage + '%';
+            }, 100);
+            
+            document.getElementById('realScore').textContent = result.final_result.real_percentage + '%';
+            document.getElementById('fakeScore').textContent = result.final_result.fake_percentage + '%';
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // Reset everything
+        function resetFile() {
+            selectedFile = null;
+            fileInput.value = '';
+            fileInfo.classList.remove('show');
+            actionButtons.classList.remove('show');
+            dropZone.style.display = '';
+        }
+        
+        function resetAll() {
+            resetFile();
+            resultsSection.classList.remove('show');
+            processingSection.classList.remove('show');
+            uploadSection.classList.add('show');
+            resetSteps();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        function validateAndSetFile(file) {
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            const allowed = ['.mp4', '.avi', '.mov', '.mkv', '.webm'];
+            
+            if (!allowed.includes(ext)) {
+                showError('Invalid file type. Please upload MP4, AVI, MOV, MKV, or WEBM files.');
+                return false;
+            }
+            
+            if (file.size > 500 * 1024 * 1024) {
+                showError('File is too large. Maximum size is 500MB.');
+                return false;
+            }
+            
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatSize(file.size);
+            fileInfo.classList.add('show');
+            actionButtons.classList.add('show');
+            dropZone.style.display = 'none';
+            return true;
+        }
+        
+        // Event Listeners
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                validateAndSetFile(e.dataTransfer.files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                validateAndSetFile(e.target.files[0]);
+            }
+        });
+        
+        removeFile.addEventListener('click', resetFile);
+        analyzeBtn.addEventListener('click', startAnalysis);
+        closeError.addEventListener('click', () => errorModal.classList.remove('show'));
+        newAnalysisBtn.addEventListener('click', resetAll);
+    </script>
+</body>
+</html>
